@@ -10,6 +10,7 @@ import {
   isLastWidgetInRow,
   canResizeBetweenWidgets,
   createDefaultWidgetWidths,
+  sortWidgetsByHomepageLayout,
 } from '../widgetLayout';
 
 import type { WidgetWithUID } from '../../core/apis/Widgets';
@@ -197,5 +198,26 @@ describe('createDefaultWidgetWidths', () => {
       'widget-2': 6,
       'widget-3': 12,
     });
+  });
+});
+
+describe('sortWidgetsByHomepageLayout', () => {
+  it('should maintain the exact order from the homepage layout', () => {
+    const layout = {
+      version: 1,
+      updatedAt: '2026-01-01',
+      widgets: [
+        { uid: 'widget-3', width: 6 as const },
+        { uid: 'widget-1', width: 6 as const },
+        { uid: 'widget-2', width: 12 as const },
+      ],
+    };
+
+    const result = sortWidgetsByHomepageLayout(
+      [mockWidgets[0], mockWidgets[1], mockWidgets[2]],
+      layout
+    );
+
+    expect(result.map((w) => w.uid)).toEqual(['widget-3', 'widget-1', 'widget-2']);
   });
 });
