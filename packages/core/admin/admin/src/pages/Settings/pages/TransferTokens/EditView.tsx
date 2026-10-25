@@ -46,7 +46,20 @@ const schema = yup.object().shape({
 const PERMISSIONS_BY_TOKEN_TYPE: Record<string, Array<'push' | 'pull'> | undefined> = {
   push: ['push'],
   pull: ['pull'],
+  'push-pull': ['push', 'pull'],
   'pull-push': ['push', 'pull'],
+};
+
+const getInitialPermissions = (
+  permissions?: TransferToken['permissions']
+): FormValues['permissions'] => {
+  if (!permissions) {
+    return '' as FormValues['permissions'];
+  }
+  if (permissions.includes('push') && permissions.includes('pull')) {
+    return 'push-pull';
+  }
+  return (permissions.join('-') ?? '') as FormValues['permissions'];
 };
 
 /* -------------------------------------------------------------------------------------------------
@@ -243,7 +256,7 @@ const EditView = () => {
              * in the request body incase we don't have a transferToken and instead
              * use an empty string.
              */
-            permissions: (transferToken?.permissions.join('-') ?? '') as FormValues['permissions'],
+            permissions: getInitialPermissions(transferToken?.permissions),
           } satisfies FormValues
         }
         enableReinitialize
