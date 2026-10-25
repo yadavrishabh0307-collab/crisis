@@ -44,7 +44,7 @@ const USER_FILTER_ATTRIBUTES = new Set([...CREATOR_FIELDS, 'strapi_assignee']);
  * Operators whose operand is the admin user a filter selects. Those ids are resolved to display
  * names, so the matching users have to be fetched alongside the list.
  */
-const USER_SELECTION_OPERATORS = ['$eq', '$in'];
+const USER_SELECTION_OPERATORS = new Set(['$eq', '$ne', '$in']);
 
 const getSelectedUserIds = (
   appliedFilters: NonNullable<NonNullable<Filters.Query['filters']>['$and']>,
@@ -61,7 +61,7 @@ const getSelectedUserIds = (
       }
 
       Object.entries(operand)
-        .filter(([operator]) => USER_SELECTION_OPERATORS.includes(operator))
+        .filter(([operator]) => USER_SELECTION_OPERATORS.has(operator))
         .forEach(([, id]) => {
           if (id) {
             selected.add(id);

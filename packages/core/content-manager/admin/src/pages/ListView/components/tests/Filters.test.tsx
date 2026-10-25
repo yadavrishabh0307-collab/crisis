@@ -1,3 +1,6 @@
+import * as React from 'react';
+
+import { useAdminUsers, useQueryParams } from '@strapi/admin/strapi-admin';
 import { render as renderRTL, screen } from '@tests/utils';
 import { IntlProvider } from 'react-intl';
 
@@ -221,5 +224,30 @@ describe('ListView Filters', () => {
 
     expect(await screen.findByRole('option', { name: 'morning' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'evening' })).toBeInTheDocument();
+  });
+
+  it('fetches admin user details for "is not" filter operator ($ne)', () => {
+    jest.clearAllMocks();
+    mockPermissions = [...ARTICLE_READ_PERMISSIONS, { action: 'admin::users.read', subject: null }];
+    (useQueryParams as jest.Mock).mockReturnValue([
+      {
+        query: {
+          filters: {
+            $and: [{ createdBy: { id: { $ne: '42' } } }],
+          },
+        },
+      },
+    ]);
+
+    renderRTL(
+      <Filters.Root schema={enumerationSchema} layout={enumerationLayout}>
+        <Filters.Trigger />
+      </Filters.Root>
+    );
+
+    expect(useAdminUsers).toHaveBeenCalledWith(
+      { filters: { id: { $in: ['42'] } } },
+      expect.objectContaining({ skip: false })
+    );
   });
 });
