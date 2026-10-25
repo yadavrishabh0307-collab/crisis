@@ -669,5 +669,26 @@ describe('Permissions Engine', () => {
       });
       expect(called).toEqual('beforeRegister');
     });
+
+    it('combines multiple condition queries with $or instead of $and', async () => {
+      const testPermissions = [
+        {
+          action: 'read',
+          subject: 'article',
+          conditions: ['hasId125', 'hasId200'],
+        },
+      ];
+      const { ability } = await buildEngineWithAbility({
+        permissions: testPermissions,
+      });
+
+      expect(ability.rules).toHaveLength(1);
+      expect(ability.rules[0].conditions).toEqual({
+        $or: [{ id: 125 }, { id: 200 }],
+      });
+      expect(ability.can('read', subject('article', { id: 125 }))).toBe(true);
+      expect(ability.can('read', subject('article', { id: 200 }))).toBe(true);
+      expect(ability.can('read', subject('article', { id: 300 }))).toBe(false);
+    });
   });
 });
