@@ -574,6 +574,64 @@ describe('Relations', () => {
       expect(screen.queryByText('No relations available')).not.toBeInTheDocument();
       expect(await screen.findByRole('option', { name: /Category 2/ })).toBeInTheDocument();
     });
+
+    it('omits newly connected relations from the available relations dropdown', async () => {
+      mockCategorySearch();
+      const { user } = render({
+        initialValues: { relations: { connect: [], disconnect: [] } },
+      });
+
+      const combobox = await screen.findByRole('combobox', { name: /relations/i });
+
+      await user.click(combobox);
+      await user.click(await screen.findByRole('option', { name: /Category 1/ }));
+
+      await waitForSearchDebounce();
+      await user.click(combobox);
+
+      expect(screen.queryByRole('option', { name: /Category 1/ })).not.toBeInTheDocument();
+      expect(await screen.findByRole('option', { name: /Category 2/ })).toBeInTheDocument();
+    });
+
+    it('requests disconnected relations in idsToInclude so they can be re-selected', async () => {
+      let receivedIdsToInclude: string[] = [];
+
+      server.use(
+        http.get('/content-manager/relations/:model/:fieldName', ({ request }) => {
+          const params = new URL(request.url).searchParams;
+          const collected: string[] = [];
+          for (const [key, value] of params.entries()) {
+            if (key.startsWith('idsToInclude')) {
+              collected.push(value);
+            }
+          }
+          receivedIdsToInclude = collected;
+
+          return HttpResponse.json({
+            results: [
+              {
+                id: 99,
+                documentId: 'cat-99',
+                locale: 'en',
+                status: 'published',
+                name: 'Category 99',
+              },
+            ],
+            pagination: { page: 1, pageCount: 1, pageSize: 10, total: 1 },
+          });
+        })
+      );
+
+      render({
+        initialValues: {
+          relations: { connect: [], disconnect: [{ id: 99, status: 'published' }] },
+        },
+      });
+
+      await waitFor(() => {
+        expect(receivedIdsToInclude).toContain('99');
+      });
+    });
   });
 
   it('preserves the active locale when opening a non-localized nested relation in full page', async () => {

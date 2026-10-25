@@ -111,8 +111,6 @@ function useHandleDisconnect(fieldName: string, consumerName: string) {
  * RelationsField
  * -----------------------------------------------------------------------------------------------*/
 
-type PendingRelation = Partial<Relation> & Pick<Relation, 'id'>;
-
 /**
  * The search endpoint only knows about what has been persisted: it leaves out the entries that
  * are already related to the document and knows nothing about the changes queued in the form.
@@ -120,20 +118,13 @@ type PendingRelation = Partial<Relation> & Pick<Relation, 'id'>;
  * about yet have to be asked for explicitly so they can be offered again.
  */
 const getPendingRelationIds = (field?: RelationsFormValue) => {
-  const pending: PendingRelation[] = [...(field?.connect ?? []), ...(field?.disconnect ?? [])];
+  const idsToOmit = (field?.connect ?? []).map((rel) => rel.id.toString());
+  const omitSet = new Set(idsToOmit);
+  const idsToInclude = (field?.disconnect ?? [])
+    .map((rel) => rel.id.toString())
+    .filter((id) => !omitSet.has(id));
 
-  return pending.reduce<{ idsToInclude: string[]; idsToOmit: string[] }>(
-    (acc, relation) => {
-      if (relation.apiData?.isTemporary) {
-        acc.idsToInclude.push(relation.id.toString());
-      } else {
-        acc.idsToOmit.push(relation.id.toString());
-      }
-
-      return acc;
-    },
-    { idsToInclude: [], idsToOmit: [] }
-  );
+  return { idsToInclude, idsToOmit };
 };
 
 const RELATIONS_TO_DISPLAY = 5;
