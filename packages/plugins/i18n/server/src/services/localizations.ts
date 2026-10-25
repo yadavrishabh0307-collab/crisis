@@ -86,7 +86,6 @@ const syncNonLocalizedAttributes = async (sourceEntry: any, model: Schema.Conten
   const documentRowFilters = {
     documentId,
     publishedAt: status === 'published' ? { $ne: null } : null,
-    locale: { $eq: locale },
   };
 
   // Find all the entries that need to be updated
@@ -116,7 +115,7 @@ const syncNonLocalizedAttributes = async (sourceEntry: any, model: Schema.Conten
 
     // Update every other locale entry of this documentId in the same status
     await strapi.db.query(uid).update({
-      where: documentRowFilters,
+      where: { ...documentRowFilters, locale: { $eq: entry.locale } },
       // The data we send to the update function is the entry data merged with
       // the updated component data
       data: Object.assign(cloneDeep(entryData), componentData),
