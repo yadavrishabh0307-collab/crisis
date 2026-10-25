@@ -787,6 +787,52 @@ describe('Sanitize visitors util', () => {
       // re-verified (and re-thrown) for all four entities.
       expect(verify).toHaveBeenCalledTimes(1);
     });
+
+    test('strips bidirectional relation when target is restricted', async () => {
+      const verify = jest.fn((_auth: unknown, options: { scope?: string }) => {
+        if (options.scope === 'api::secret.secret.find') {
+          return Promise.reject(new Error('Forbidden'));
+        }
+        return Promise.resolve();
+      });
+      global.strapi = { auth: { verify } } as unknown as typeof strapi;
+
+      const bidirectionalSchema = {
+        kind: 'collectionType' as const,
+        uid: 'api::article.article',
+        info: { singularName: 'article', pluralName: 'articles' },
+        options: {},
+        attributes: {
+          title: { type: 'string' as const },
+          secretRelation: {
+            type: 'relation' as const,
+            relation: 'manyToMany' as const,
+            target: 'api::secret.secret',
+            inversedBy: 'articles',
+          },
+        },
+      };
+
+      const auth = { strategy: 'api-token', credentials: null };
+      const visitor = visitors.removeRestrictedRelations(auth);
+
+      const entity = {
+        title: 'public article',
+        secretRelation: [{ name: 'secret category' }],
+      };
+
+      const result = await traverseEntity(
+        visitor,
+        {
+          schema: bidirectionalSchema as unknown as Parameters<typeof traverseEntity>[1]['schema'],
+          getModel: getModelWithSecret,
+        },
+        entity
+      );
+
+      expect(result).not.toHaveProperty('secretRelation');
+      expect(result).toHaveProperty('title', 'public article');
+    });
   });
 
   describe('strictParams visitor - removes fields not in schema', () => {
