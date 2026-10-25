@@ -228,4 +228,72 @@ describe('Header', () => {
       expect(await screen.findByText('Document ID copied to clipboard')).toBeInTheDocument();
     });
   });
+
+  describe('Information author attributes', () => {
+    beforeEach(() => {
+      getDocumentActionsReturn = [
+        () => ({ label: 'Edit the model', icon: null, position: 'header' }),
+      ];
+    });
+
+    afterEach(() => {
+      getDocumentActionsReturn = [];
+      useDocMock.mockReset();
+    });
+
+    it('shows the editor on the Updated row when both creator and editor exist', async () => {
+      useDocMock.mockImplementation(() => ({
+        ...defaultUseDocReturnForCreate,
+        id: 'doc-123',
+        document: {
+          id: 1,
+          documentId: 'doc-123',
+          createdAt: '2025-01-01T00:00:00.000Z',
+          updatedAt: '2025-01-02T00:00:00.000Z',
+          createdBy: { firstname: 'Alice', lastname: 'Creator' },
+          updatedBy: { firstname: 'Bob', lastname: 'Editor' },
+        },
+        meta: {},
+      }));
+
+      const { user } = render({ status: 'draft' });
+
+      const moreActionsButton = await screen.findByRole('button', {
+        name: 'More actions',
+      });
+      await waitFor(() => expect(moreActionsButton).not.toHaveAttribute('aria-disabled', 'true'));
+      await user.click(moreActionsButton);
+
+      expect(await screen.findByText('Updated')).toBeInTheDocument();
+      expect(screen.getByText(/by Bob Editor/)).toBeInTheDocument();
+      expect(screen.getByText('Created')).toBeInTheDocument();
+      expect(screen.getByText(/by Alice Creator/)).toBeInTheDocument();
+    });
+
+    it('falls back to creator on the Updated row when updatedBy is absent', async () => {
+      useDocMock.mockImplementation(() => ({
+        ...defaultUseDocReturnForCreate,
+        id: 'doc-123',
+        document: {
+          id: 1,
+          documentId: 'doc-123',
+          createdAt: '2025-01-01T00:00:00.000Z',
+          updatedAt: '2025-01-02T00:00:00.000Z',
+          createdBy: { firstname: 'Alice', lastname: 'Creator' },
+        },
+        meta: {},
+      }));
+
+      const { user } = render({ status: 'draft' });
+
+      const moreActionsButton = await screen.findByRole('button', {
+        name: 'More actions',
+      });
+      await waitFor(() => expect(moreActionsButton).not.toHaveAttribute('aria-disabled', 'true'));
+      await user.click(moreActionsButton);
+
+      expect(await screen.findByText('Updated')).toBeInTheDocument();
+      expect(screen.getAllByText(/by Alice Creator/)).toHaveLength(2);
+    });
+  });
 });
