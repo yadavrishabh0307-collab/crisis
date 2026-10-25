@@ -41,7 +41,7 @@ import { InjectionZone } from '../../components/InjectionZone';
 import { HOOKS } from '../../constants/hooks';
 import { PERMISSIONS } from '../../constants/plugin';
 import { DocumentRBAC, useDocumentRBAC } from '../../features/DocumentRBAC';
-import { type Document, useDoc } from '../../hooks/useDocument';
+import { useDoc } from '../../hooks/useDocument';
 import {
   ListFieldLayout,
   convertListLayoutToFieldLayouts,
@@ -764,21 +764,21 @@ const ActionsCell = styled(Table.Cell)`
 
 const TableActionsBar = () => {
   const selectRow = useTable('TableActionsBar', (state) => state.selectRow);
-  const rows = useTable('TableActionsBar', (state) => state.rows) as Document[];
-  const selectedRows = useTable('TableActionsBar', (state) => state.selectedRows) as Document[];
   const [{ query }] = useQueryParams<{ plugins: { i18n: { locale: string } } }>();
   const locale = query?.plugins?.i18n?.locale;
   const prevLocale = usePrev(locale);
+  const isFirstRender = React.useRef(true);
 
   React.useEffect(() => {
-    if (prevLocale === locale) {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
       return;
     }
 
-    const availableDocumentIds = new Set(rows.map((row) => row.documentId));
-
-    selectRow(selectedRows.filter((row) => availableDocumentIds.has(row.documentId)));
-  }, [selectRow, prevLocale, locale, rows, selectedRows]);
+    if (prevLocale !== locale) {
+      selectRow([]);
+    }
+  }, [selectRow, prevLocale, locale]);
 
   return (
     <Table.ActionBar>
@@ -860,4 +860,4 @@ const ProtectedListViewPage = () => {
   );
 };
 
-export { ListViewPage, ProtectedListViewPage };
+export { ListViewPage, ProtectedListViewPage, TableActionsBar };
