@@ -1,3 +1,5 @@
+import * as React from 'react';
+
 import { Form } from '@strapi/admin/strapi-admin';
 import { render as renderRTL, screen } from '@tests/utils';
 import { Route, Routes } from 'react-router-dom';
@@ -122,5 +124,62 @@ describe('RepeatableComponent', () => {
 
     expect(screen.getByRole('button', { name: 'Entry one' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Add an entry/i })).toBeInTheDocument();
+  });
+
+  it('shows a notification when clicking add entry when entries equal max', async () => {
+    const attributeWithMax: RepeatableComponentProps['attribute'] = {
+      type: 'component',
+      component: 'blog.test-como',
+      repeatable: true,
+      max: 2,
+    };
+
+    const { user } = renderRTL(
+      <ComponentProvider level={0} type="component">
+        <RepeatableComponent
+          attribute={attributeWithMax}
+          disabled={defaultProps.disabled}
+          layout={defaultProps.layout}
+          mainField={defaultProps.mainField}
+          name={defaultProps.name}
+          type={defaultProps.type}
+        >
+          {defaultProps.children}
+        </RepeatableComponent>
+      </ComponentProvider>,
+      {
+        renderOptions: {
+          wrapper: ({ children }) => (
+            <Routes>
+              <Route
+                path="/content-manager/:collectionType/:slug/:id"
+                element={
+                  <Form
+                    initialValues={{
+                      [FIELD_NAME]: [
+                        { __temp_key__: '0', name: 'Entry one' },
+                        { __temp_key__: '1', name: 'Entry two' },
+                      ],
+                    }}
+                    method="POST"
+                    onSubmit={jest.fn()}
+                  >
+                    {children}
+                  </Form>
+                }
+              />
+            </Routes>
+          ),
+        },
+        initialEntries: ['/content-manager/collection-types/api::address.address/create'],
+      }
+    );
+
+    const addButton = screen.getByRole('button', { name: /Add an entry/i });
+    await user.click(addButton);
+
+    expect(
+      await screen.findByText('content-manager.components.notification.info.maximum-requirement')
+    ).toBeInTheDocument();
   });
 });
